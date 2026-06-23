@@ -29,3 +29,6 @@ jobs:
           context: ch4-cicd
           push: true
           tags: ghcr.io/${{ github.repository }}/wiki-stats:latest
+
+      - name: Echo image URL
+        run: echo "Published to ghcr.io/${{ github.repository }}/wiki-stats:latest"
