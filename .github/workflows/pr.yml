@@ -5,9 +5,9 @@ on:
     branches: [main]
     paths:
       - 'ch4-cicd/**'
+      - '.github/workflows/**'
 
 jobs:
-  # runs all checks realted to ch4-cicd change only
   test:
     runs-on: ubuntu-latest
     defaults:
@@ -37,7 +37,7 @@ jobs:
         run: |
           docker compose up -d scylla
           until docker compose exec -T scylla cqlsh -e "SHOW VERSION" > /dev/null 2>&1; do
-            echo "waiting for scylla..."
+            echo "waiting for scylla"
             sleep 5
           done
           go test -tags=integration ./...

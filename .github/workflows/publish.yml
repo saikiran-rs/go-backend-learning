@@ -5,6 +5,7 @@ on:
     branches: [main]
     paths:
       - 'ch4-cicd/**'
+      - '.github/workflows/**'
 
 jobs:
   publish:
