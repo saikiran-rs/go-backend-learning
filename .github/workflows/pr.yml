@@ -1,0 +1,44 @@
+name: PR Checks
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'ch4-cicd/**'
+
+jobs:
+  # runs all checks realted to ch4-cicd change only
+  test:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ch4-cicd
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.24'
+
+      - name: go vet
+        run: go vet ./...
+
+      - name: golangci-lint
+        uses: golangci/golangci-lint-action@v6
+        with:
+          version: latest
+          working-directory: ch4-cicd
+
+      - name: Unit tests
+        run: go test -race ./...
+
+      - name: Integration tests (with Scylla via compose)
+        # spin up Scylla and wait until ready then run tests and destroy
+        run: |
+          docker compose up -d scylla
+          until docker compose exec -T scylla cqlsh -e "SHOW VERSION" > /dev/null 2>&1; do
+            echo "waiting for scylla..."
+            sleep 5
+          done
+          go test -tags=integration ./...
+          docker compose down

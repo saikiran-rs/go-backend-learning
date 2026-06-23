@@ -1,0 +1,26 @@
+services:
+  scylla:
+    image: scylladb/scylla:2026.1
+    command: --smp 1 --developer-mode 1
+    ports:
+      - "9042:9042"
+    volumes:
+      - scylla-data:/var/lib/scylla
+    healthcheck:
+      test: ["CMD-SHELL", "cqlsh -e 'SHOW VERSION' || exit 1"]
+      interval: 10s
+      timeout: 10s
+      retries: 20
+      start_period: 30s
+  app:
+    build: .
+    depends_on:
+      scylla:
+        condition: service_healthy
+    environment:
+      - SCYLLA_HOST=scylla
+    ports:
+      - "8080:8080"
+
+volumes:
+  scylla-data:
