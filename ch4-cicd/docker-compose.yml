@@ -20,7 +20,7 @@ services:
     environment:
       - SCYLLA_HOST=scylla
     ports:
-      - "8080:8080"
+      - "7001:7001"
 
 volumes:
   scylla-data:
