@@ -3,6 +3,7 @@ package main
 import (
 	"bufio"
 	"context"
+	"github.com/twmb/franz-go/pkg/kgo"
 	"log"
 	"net/http"
 	"os"
@@ -10,7 +11,6 @@ import (
 	"strings"
 	"syscall"
 	"time"
-	"github.com/twmb/franz-go/pkg/kgo"
 )
 
 func main() {
@@ -59,7 +59,11 @@ func produceStream(ctx context.Context, client *kgo.Client, url string) error {
 	if err != nil {
 		return err
 	}
-	defer resp.Body.Close()
+	defer func() {
+		if err := resp.Body.Close(); err != nil {
+			log.Printf("closing stream body: %v", err)
+		}
+	}()
 
 	scanner := bufio.NewScanner(resp.Body)
 	scanner.Buffer(make([]byte, 0), 1024*1024)

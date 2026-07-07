@@ -48,6 +48,7 @@ func NewScyllaStore(host string, port int) (*ScyllaStore, error) {
 //     growing forever, which Scylla cares about.
 //   - ts (timestamp) sorts rows by time within the day, so time-range queries
 //     for Grafana will be fast. DESC = newest first.
+//
 // server_counts is a map column: all per-server counts sit inside the snapshot row.
 func (s *ScyllaStore) initializeSchema() error {
 	queries := []string{

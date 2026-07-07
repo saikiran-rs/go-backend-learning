@@ -1,16 +1,16 @@
 package main
 
 import (
+	"ch5-redpanda/internal/stats"
 	"context"
 	"encoding/json"
+	"github.com/twmb/franz-go/pkg/kgo"
 	"log"
 	"os"
 	"os/signal"
 	"strings"
 	"syscall"
 	"time"
-	"ch5-redpanda/internal/stats"
-	"github.com/twmb/franz-go/pkg/kgo"
 )
 
 type recentChange struct {
