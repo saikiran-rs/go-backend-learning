@@ -5,6 +5,7 @@ on:
     branches: [main]
     paths:
       - 'ch4-cicd/**'
+      - 'ch5-redpanda/**'
       - '.github/workflows/**'
 
 jobs:
@@ -32,3 +33,39 @@ jobs:
 
       - name: Echo image URL
         run: echo "Published to ghcr.io/${{ github.repository }}/wiki-stats:latest"
+
+  publish-ch5:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Log in to ghcr.io
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push producer
+        uses: docker/build-push-action@v6
+        with:
+          context: ch5-redpanda
+          file: ch5-redpanda/cmd/producer/Dockerfile
+          push: true
+          tags: ghcr.io/${{ github.repository }}/wiki-producer:latest
+
+      - name: Build and push consumer
+        uses: docker/build-push-action@v6
+        with:
+          context: ch5-redpanda
+          file: ch5-redpanda/cmd/consumer/Dockerfile
+          push: true
+          tags: ghcr.io/${{ github.repository }}/wiki-consumer:latest
+
+      - name: Echo image URLs
+        run: |
+          echo "Published to ghcr.io/${{ github.repository }}/wiki-producer:latest"
+          echo "Published to ghcr.io/${{ github.repository }}/wiki-consumer:latest"
