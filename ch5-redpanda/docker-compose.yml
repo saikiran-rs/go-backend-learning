@@ -1,0 +1,48 @@
+services:
+  redpanda:
+    image: redpandadata/redpanda:latest
+    command:
+      - redpanda
+      - start
+      - --smp
+      - "1"
+      - --overprovisioned
+      - --kafka-addr
+      - PLAINTEXT://0.0.0.0:9092
+      - --advertise-kafka-addr
+      - PLAINTEXT://redpanda:9092
+    ports:
+      - "9092:9092"
+    volumes:
+      - redpanda-data:/var/lib/redpanda/data
+    healthcheck:
+      test: ["CMD-SHELL", "rpk cluster health | grep -q 'Healthy:.*true'"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  producer:
+    build:
+      context: .
+      dockerfile: cmd/producer/Dockerfile
+    depends_on:
+      redpanda:
+        condition: service_healthy
+    environment:
+      - REDPANDA_BROKERS=redpanda:9092
+      - WIKI_TOPIC=wiki-events
+
+  consumer:
+    build:
+      context: .
+      dockerfile: cmd/consumer/Dockerfile
+    depends_on:
+      redpanda:
+        condition: service_healthy
+    environment:
+      - REDPANDA_BROKERS=redpanda:9092
+      - WIKI_TOPIC=wiki-events
+      - CONSUMER_GROUP=wiki-stats
+
+volumes:
+  redpanda-data:
