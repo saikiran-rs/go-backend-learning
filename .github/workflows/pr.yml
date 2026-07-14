@@ -5,6 +5,7 @@ on:
     branches: [main]
     paths:
       - 'ch4-cicd/**'
+      - 'ch7-observability/**'
       - '.github/workflows/**'
 
 jobs:
@@ -42,3 +43,27 @@ jobs:
           done
           go test -tags=integration ./...
           docker compose down
+
+  test-ch7:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ch7-observability
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.25'
+
+      - name: go vet
+        run: go vet ./...
+
+      - name: golangci-lint
+        uses: golangci/golangci-lint-action@v6
+        with:
+          version: latest
+          working-directory: ch7-observability
+
+      - name: Unit tests
+        run: go test -race ./...
