@@ -15,12 +15,6 @@ import (
 	"time"
 )
 
-type recentChange struct {
-	User      string `json:"user"`
-	Bot       bool   `json:"bot"`
-	ServerURL string `json:"server_url"`
-}
-
 func main() {
 	brokers := getenv("REDPANDA_BROKERS", "localhost:9092")
 	topic := getenv("WIKI_TOPIC", "wiki-events-proto")
