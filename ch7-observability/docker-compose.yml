@@ -1,0 +1,93 @@
+services:
+  redpanda:
+    image: redpandadata/redpanda:latest
+    command:
+      - redpanda
+      - start
+      - --smp
+      - "1"
+      - --overprovisioned
+      - --kafka-addr
+      - PLAINTEXT://0.0.0.0:9092
+      - --advertise-kafka-addr
+      - PLAINTEXT://redpanda:9092
+    ports:
+      - "9092:9092"
+    volumes:
+      - redpanda-data:/var/lib/redpanda/data
+    healthcheck:
+      test: ["CMD-SHELL", "rpk cluster health | grep -q 'Healthy:.*true'"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  console:
+    image: redpandadata/console:latest
+    depends_on:
+      redpanda:
+        condition: service_healthy
+    ports:
+      - "8080:8080"
+    environment:
+      CONFIG_FILEPATH: /etc/console/config.yaml
+    volumes:
+      - ./console-config.yaml:/etc/console/config.yaml:ro
+      - ./proto:/etc/console/proto:ro
+
+  producer:
+    build:
+      context: .
+      dockerfile: cmd/producer/Dockerfile
+    depends_on:
+      redpanda:
+        condition: service_healthy
+    environment:
+      - REDPANDA_BROKERS=redpanda:9092
+      - WIKI_TOPIC=wiki-events-proto
+      - METRICS_ADDR=:2112
+    ports:
+      - "2112:2112"
+
+  consumer:
+    build:
+      context: .
+      dockerfile: cmd/consumer/Dockerfile
+    depends_on:
+      redpanda:
+        condition: service_healthy
+    environment:
+      - REDPANDA_BROKERS=redpanda:9092
+      - WIKI_TOPIC=wiki-events-proto
+      - CONSUMER_GROUP=wiki-stats
+      - METRICS_ADDR=:2112
+    ports:
+      - "2113:2112"
+
+  prometheus:
+    image: prom/prometheus:latest
+    depends_on:
+      - producer
+      - consumer
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml:ro
+
+  grafana:
+    image: grafana/grafana:latest
+    depends_on:
+      - prometheus
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_AUTH_ANONYMOUS_ENABLED=true
+    volumes:
+      - ./grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./grafana/dashboards:/var/lib/grafana/dashboards:ro
+      - grafana-data:/var/lib/grafana
+
+volumes:
+  redpanda-data:
+  grafana-data:
