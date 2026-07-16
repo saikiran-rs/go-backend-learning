@@ -1,0 +1,26 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: create-topic
+  namespace: wiki
+spec:
+  backoffLimit: 20
+  template:
+    spec:
+      restartPolicy: OnFailure
+      containers:
+        - name: rpk
+          image: redpandadata/redpanda:latest
+          command:
+            - sh
+            - -c
+            - |
+              until rpk cluster health --brokers redpanda:9092 | grep -q 'Healthy:.*true'; do
+                echo "waiting for redpanda to be healthy"; sleep 3;
+              done
+              rpk topic create wiki-events-proto -p 6 --brokers redpanda:9092 \
+                -c cleanup.policy=delete \
+                -c retention.ms=604800000 \
+                -c compression.type=zstd \
+                -c max.message.bytes=1048576 \
+                || rpk topic describe wiki-events-proto --brokers redpanda:9092
