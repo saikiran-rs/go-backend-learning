@@ -1,0 +1,49 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: producer-config
+  namespace: wiki
+data:
+  REDPANDA_BROKERS: "redpanda:9092"
+  WIKI_TOPIC: "wiki-events-proto"
+  STREAM_URL: "https://stream.wikimedia.org/v2/stream/recentchange"
+  METRICS_ADDR: ":2112"
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: producer
+  namespace: wiki
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: producer
+  template:
+    metadata:
+      labels:
+        app: producer
+    spec:
+      containers:
+        - name: producer
+          image: wiki-producer:local
+          imagePullPolicy: IfNotPresent
+          envFrom:
+            - configMapRef:
+                name: producer-config
+          ports:
+            - name: metrics
+              containerPort: 2112
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: producer
+  namespace: wiki
+spec:
+  selector:
+    app: producer
+  ports:
+    - name: metrics
+      port: 2112
+      targetPort: 2112
