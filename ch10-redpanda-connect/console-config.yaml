@@ -1,0 +1,15 @@
+kafka:
+  brokers:
+    - redpanda:9092
+
+serde:
+  protobuf:
+    enabled: true
+    mappings:
+      - topicName: wiki-events-proto
+        valueProtoType: wiki.v1.WikiEvent
+    fileSystem:
+      enabled: true
+      paths:
+        - /etc/console/proto
+      refreshInterval: 5m

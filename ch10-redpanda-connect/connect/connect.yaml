@@ -1,0 +1,47 @@
+http:
+  address: 0.0.0.0:4195
+  enabled: true
+
+input:
+  label: wiki_in
+  redpanda:
+    seed_brokers:
+      - redpanda:9092
+    topics:
+      - wiki-events-proto
+    consumer_group: wiki-stats
+    start_from_oldest: true
+
+pipeline:
+  processors:
+    - label: decode
+      protobuf:
+        operator: to_json
+        message: wiki.v1.WikiEvent
+        import_paths:
+          - /proto
+
+output:
+  label: scylla_out
+  cassandra:
+    addresses:
+      - scylla:9042
+    query: >
+      INSERT INTO wiki.events (kafka_partition, kafka_offset, wiki_user, server_url, bot)
+      VALUES (?, ?, ?, ?, ?)
+    args_mapping: |
+      root = [
+        meta("kafka_partition").int64(),
+        meta("kafka_offset").int64(),
+        this.user,
+        this.server_url,
+        this.bot
+      ]
+    consistency: ONE
+    max_retries: 3
+    batching:
+      count: 100
+      period: 5s
+
+metrics:
+  prometheus: {}
