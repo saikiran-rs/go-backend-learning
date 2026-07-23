@@ -8,7 +8,6 @@ import (
 	"os"
 	"strconv"
 	"strings"
-	"sync"
 	"time"
 )
 
@@ -61,7 +60,9 @@ func statusHandler(w http.ResponseWriter, r *http.Request) {
 	responce := map[string]string{"status": "ok", "version": version}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(responce)
+	if err := json.NewEncoder(w).Encode(responce); err != nil {
+		log.Printf("encode error: %v", err)
+	}
 
 }
 
@@ -71,8 +72,6 @@ type data struct {
 	Bot       bool   `json:"bot"`
 	ServerURL string `json:"server_url"`
 }
-
-var rwmData sync.RWMutex
 
 func consumeWikiStream(url string, store StatsStore) {
 	req, err := http.NewRequest("GET", url, nil)
@@ -90,7 +89,11 @@ func consumeWikiStream(url string, store StatsStore) {
 		log.Fatalf("Error connecting to stream: received status code %d", resp.StatusCode)
 	}
 
-	defer resp.Body.Close()
+	defer func() {
+		if err := resp.Body.Close(); err != nil {
+			log.Printf("closing stream body: %v", err)
+		}
+	}()
 
 	scanner := bufio.NewScanner(resp.Body)
 	scanner.Buffer(make([]byte, 0), 1024*1024)
@@ -116,7 +119,9 @@ func consumeWikiStream(url string, store StatsStore) {
 
 func statsHandler(w http.ResponseWriter, store StatsStore) {
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(store.Snapshot())
+	if err := json.NewEncoder(w).Encode(store.Snapshot()); err != nil {
+		log.Printf("encode error: %v", err)
+	}
 }
 
 func runSnapshotTicker(p SnapshotSaver, store StatsStore, interval time.Duration) {
