@@ -6,40 +6,52 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"strconv"
 	"strings"
-	"sync"
 	"time"
 )
 
 func main() {
 
 	var store StatsStore = NewInMemoryStore()
-	go consumeWikiStream("https://stream.wikimedia.org/v2/stream/recentchange", store)
+	go consumeWikiStream(getenv("STREAM_URL", "https://stream.wikimedia.org/v2/stream/recentchange"), store)
 
-	scyllaHost := os.Getenv("SCYLLA_HOST")
-	if scyllaHost == "" {
-		scyllaHost = "localhost"
-	}
-	persister, err := NewScyllaStore(scyllaHost, 9042)
+	scyllaHost := getenv("SCYLLA_HOST", "localhost")
+	scyllaPort := getenvInt("SCYLLA_PORT", 9042)
+	persister, err := NewScyllaStore(scyllaHost, scyllaPort)
 	if err != nil {
 		log.Fatal("Error creating Scylla store: ", err)
 	}
 	go runSnapshotTicker(persister, store, time.Minute)
 
-	const port = ":7001"
+	port := getenv("PORT", "7001")
 	mux := http.NewServeMux()
 	mux.HandleFunc("/status", statusHandler)
 	mux.HandleFunc("/stats", func(w http.ResponseWriter, r *http.Request) {
 		statsHandler(w, store)
 	})
 
-	log.Println("Starting server on port http://localhost" + port)
+	log.Println("Starting server on port http://localhost:" + port)
 
-	error := http.ListenAndServe(port, mux)
-
-	if error != nil {
-		log.Fatal("Error starting server: ", error)
+	if err := http.ListenAndServe(":"+port, mux); err != nil {
+		log.Fatal("Error starting server: ", err)
 	}
+}
+
+func getenv(key, fallback string) string {
+	if v := os.Getenv(key); v != "" {
+		return v
+	}
+	return fallback
+}
+
+func getenvInt(key string, fallback int) int {
+	if v := os.Getenv(key); v != "" {
+		if n, err := strconv.Atoi(v); err == nil {
+			return n
+		}
+	}
+	return fallback
 }
 
 func statusHandler(w http.ResponseWriter, r *http.Request) {
@@ -48,7 +60,9 @@ func statusHandler(w http.ResponseWriter, r *http.Request) {
 	responce := map[string]string{"status": "ok", "version": version}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(responce)
+	if err := json.NewEncoder(w).Encode(responce); err != nil {
+		log.Printf("encode error: %v", err)
+	}
 
 }
 
@@ -58,8 +72,6 @@ type data struct {
 	Bot       bool   `json:"bot"`
 	ServerURL string `json:"server_url"`
 }
-
-var rwmData sync.RWMutex
 
 func consumeWikiStream(url string, store StatsStore) {
 	req, err := http.NewRequest("GET", url, nil)
@@ -77,7 +89,11 @@ func consumeWikiStream(url string, store StatsStore) {
 		log.Fatalf("Error connecting to stream: received status code %d", resp.StatusCode)
 	}
 
-	defer resp.Body.Close()
+	defer func() {
+		if err := resp.Body.Close(); err != nil {
+			log.Printf("closing stream body: %v", err)
+		}
+	}()
 
 	scanner := bufio.NewScanner(resp.Body)
 	scanner.Buffer(make([]byte, 0), 1024*1024)
@@ -103,7 +119,9 @@ func consumeWikiStream(url string, store StatsStore) {
 
 func statsHandler(w http.ResponseWriter, store StatsStore) {
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(store.Snapshot())
+	if err := json.NewEncoder(w).Encode(store.Snapshot()); err != nil {
+		log.Printf("encode error: %v", err)
+	}
 }
 
 func runSnapshotTicker(p SnapshotSaver, store StatsStore, interval time.Duration) {
