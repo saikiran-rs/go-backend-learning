@@ -51,7 +51,7 @@ func NewScyllaStore(host string, port int) (*ScyllaStore, error) {
 // server_counts is a map column: all per-server counts sit inside the snapshot row.
 func (s *ScyllaStore) initializeSchema() error {
 	queries := []string{
-		`CREATE KEYSPACE IF NOT EXISTS wiki WITH REPLICATION = {'class': 'SimpleStrategy', 'replication_factor': 1}`,
+		`CREATE KEYSPACE IF NOT EXISTS wiki WITH REPLICATION = {'class': 'NetworkTopologyStrategy', 'replication_factor': 1}`,
 		`CREATE TABLE IF NOT EXISTS wiki.stats_snapshots(
 			bucket date, 
 			ts timestamp, 
