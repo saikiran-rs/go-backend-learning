@@ -5,23 +5,32 @@ import (
 	"encoding/json"
 	"log"
 	"net/http"
+	"os"
 	"strings"
 	"sync"
 )
 
 func main() {
-	go consumeWikiStream("https://stream.wikimedia.org/v2/stream/recentchange")
-	const port = ":7001"
+	streamURL := getenv("STREAM_URL", "https://stream.wikimedia.org/v2/stream/recentchange")
+	port := getenv("PORT", "7001")
+
+	go consumeWikiStream(streamURL)
+
 	mux := http.NewServeMux()
 	mux.HandleFunc("/status", statusHandler)
 	mux.HandleFunc("/stats", statsHandler)
 
-	error := http.ListenAndServe(port, mux)
-
-	if error != nil {
-		log.Fatal("Error starting server: ", error)
+	if err := http.ListenAndServe(":"+port, mux); err != nil {
+		log.Fatal("Error starting server: ", err)
 	}
 
+}
+
+func getenv(key, fallback string) string {
+	if v := os.Getenv(key); v != "" {
+		return v
+	}
+	return fallback
 }
 
 func statusHandler(w http.ResponseWriter, r *http.Request) {
