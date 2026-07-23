@@ -1,0 +1,51 @@
+{
+  "uid": "wiki-observability",
+  "title": "Wiki Observability",
+  "tags": ["wiki", "ch7"],
+  "timezone": "browser",
+  "schemaVersion": 39,
+  "version": 2,
+  "refresh": "5s",
+  "time": { "from": "now-15m", "to": "now" },
+  "panels": [
+    {
+      "id": 1,
+      "type": "timeseries",
+      "title": "Producer — events/sec",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 0 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": { "defaults": { "unit": "ops" }, "overrides": [] },
+      "targets": [
+        { "refId": "A", "expr": "rate(wiki_stream_events_consumed_total{job=\"producer\"}[1m])", "legendFormat": "consumed from stream", "datasource": { "type": "prometheus", "uid": "prometheus" } },
+        { "refId": "B", "expr": "rate(wiki_redpanda_events_produced_total{job=\"producer\"}[1m])", "legendFormat": "produced to redpanda", "datasource": { "type": "prometheus", "uid": "prometheus" } }
+      ]
+    },
+    {
+      "id": 2,
+      "type": "timeseries",
+      "title": "Consumer — events/sec",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 0 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": { "defaults": { "unit": "ops" }, "overrides": [] },
+      "targets": [
+        { "refId": "A", "expr": "rate(input_received{job=\"consumer\"}[1m])", "legendFormat": "consumed from redpanda", "datasource": { "type": "prometheus", "uid": "prometheus" } },
+        { "refId": "B", "expr": "rate(output_sent{job=\"consumer\"}[1m])", "legendFormat": "written to scylla", "datasource": { "type": "prometheus", "uid": "prometheus" } },
+        { "refId": "C", "expr": "rate(processor_error{job=\"consumer\"}[1m]) + rate(output_error{job=\"consumer\"}[1m])", "legendFormat": "failed", "datasource": { "type": "prometheus", "uid": "prometheus" } }
+      ]
+    },
+    {
+      "id": 3,
+      "type": "stat",
+      "title": "Totals",
+      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 8 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        { "refId": "A", "expr": "wiki_stream_events_consumed_total{job=\"producer\"}", "legendFormat": "stream consumed", "datasource": { "type": "prometheus", "uid": "prometheus" } },
+        { "refId": "B", "expr": "wiki_redpanda_events_produced_total{job=\"producer\"}", "legendFormat": "produced", "datasource": { "type": "prometheus", "uid": "prometheus" } },
+        { "refId": "C", "expr": "input_received{job=\"consumer\"}", "legendFormat": "redpanda consumed", "datasource": { "type": "prometheus", "uid": "prometheus" } },
+        { "refId": "D", "expr": "output_sent{job=\"consumer\"}", "legendFormat": "written to scylla", "datasource": { "type": "prometheus", "uid": "prometheus" } },
+        { "refId": "E", "expr": "processor_error{job=\"consumer\"} + output_error{job=\"consumer\"}", "legendFormat": "failed", "datasource": { "type": "prometheus", "uid": "prometheus" } }
+      ]
+    }
+  ]
+}

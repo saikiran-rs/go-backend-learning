@@ -1,0 +1,11 @@
+syntax = "proto3";
+
+package wiki.v1;
+
+option go_package = "ch10-redpanda-connect/internal/wiki/v1;wikiv1";
+
+message WikiEvent {
+  string user       = 1;
+  bool   bot        = 2;
+  string server_url = 3;
+}

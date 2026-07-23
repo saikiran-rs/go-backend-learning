@@ -1,0 +1,60 @@
+{
+  "uid": "redpanda-connect",
+  "title": "Redpanda Connect",
+  "tags": ["wiki", "ch10", "connect"],
+  "timezone": "browser",
+  "schemaVersion": 39,
+  "version": 1,
+  "refresh": "5s",
+  "time": { "from": "now-15m", "to": "now" },
+  "panels": [
+    {
+      "id": 1,
+      "type": "timeseries",
+      "title": "Throughput — events/sec",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 0 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": { "defaults": { "unit": "ops" }, "overrides": [] },
+      "targets": [
+        { "refId": "A", "expr": "rate(input_received{job=\"consumer\"}[1m])", "legendFormat": "input received", "datasource": { "type": "prometheus", "uid": "prometheus" } },
+        { "refId": "B", "expr": "rate(output_sent{job=\"consumer\"}[1m])", "legendFormat": "output sent", "datasource": { "type": "prometheus", "uid": "prometheus" } }
+      ]
+    },
+    {
+      "id": 2,
+      "type": "timeseries",
+      "title": "Errors — events/sec",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 0 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": { "defaults": { "unit": "ops" }, "overrides": [] },
+      "targets": [
+        { "refId": "A", "expr": "rate(processor_error{job=\"consumer\"}[1m])", "legendFormat": "decode errors", "datasource": { "type": "prometheus", "uid": "prometheus" } },
+        { "refId": "B", "expr": "rate(output_error{job=\"consumer\"}[1m])", "legendFormat": "scylla write errors", "datasource": { "type": "prometheus", "uid": "prometheus" } }
+      ]
+    },
+    {
+      "id": 3,
+      "type": "stat",
+      "title": "Connections up",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 8 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        { "refId": "A", "expr": "input_connection_up{job=\"consumer\"}", "legendFormat": "input", "datasource": { "type": "prometheus", "uid": "prometheus" } },
+        { "refId": "B", "expr": "output_connection_up{job=\"consumer\"}", "legendFormat": "output", "datasource": { "type": "prometheus", "uid": "prometheus" } }
+      ]
+    },
+    {
+      "id": 4,
+      "type": "stat",
+      "title": "Totals",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 8 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        { "refId": "A", "expr": "input_received{job=\"consumer\"}", "legendFormat": "received", "datasource": { "type": "prometheus", "uid": "prometheus" } },
+        { "refId": "B", "expr": "output_sent{job=\"consumer\"}", "legendFormat": "sent", "datasource": { "type": "prometheus", "uid": "prometheus" } },
+        { "refId": "C", "expr": "output_batch_sent{job=\"consumer\"}", "legendFormat": "batches", "datasource": { "type": "prometheus", "uid": "prometheus" } },
+        { "refId": "D", "expr": "processor_error{job=\"consumer\"} + output_error{job=\"consumer\"}", "legendFormat": "errors", "datasource": { "type": "prometheus", "uid": "prometheus" } }
+      ]
+    }
+  ]
+}
